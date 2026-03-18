@@ -6,6 +6,22 @@ const FILTERS = {
   active: '未完成',
   completed: '已完成',
 }
+const PRIORITIES = {
+  high: {
+    label: '高优先级',
+    order: 0,
+  },
+  medium: {
+    label: '中优先级',
+    order: 1,
+  },
+  low: {
+    label: '低优先级',
+    order: 2,
+  },
+}
+const PRIORITY_OPTIONS = Object.entries(PRIORITIES)
+const DEFAULT_PRIORITY = 'medium'
 
 const QUICK_TIPS = [
   '用一句清晰的话描述任务，避免含糊目标。',
@@ -13,12 +29,23 @@ const QUICK_TIPS = [
   '完成后及时清理列表，让页面始终轻盈。',
 ]
 
-const createTodo = (title) => ({
+const normalizePriority = (priority) => (PRIORITIES[priority] ? priority : DEFAULT_PRIORITY)
+
+const createTodo = (title, priority) => ({
   id: crypto.randomUUID(),
   title: title.trim(),
+  priority: normalizePriority(priority),
   completed: false,
   createdAt: new Date().toISOString(),
 })
+
+const sortTodos = (items) =>
+  [...items].sort((first, second) => {
+    const priorityDelta = PRIORITIES[first.priority].order - PRIORITIES[second.priority].order
+    if (priorityDelta !== 0) return priorityDelta
+
+    return new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime()
+  })
 
 const loadTodos = () => {
   if (typeof window === 'undefined') return []
@@ -28,7 +55,14 @@ const loadTodos = () => {
     if (!raw) return []
 
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed)
+      ? sortTodos(
+          parsed.map((todo) => ({
+            ...todo,
+            priority: normalizePriority(todo.priority),
+          })),
+        )
+      : []
   } catch {
     return []
   }
@@ -37,9 +71,11 @@ const loadTodos = () => {
 function App() {
   const [todos, setTodos] = useState(() => loadTodos())
   const [draft, setDraft] = useState('')
+  const [draftPriority, setDraftPriority] = useState(DEFAULT_PRIORITY)
   const [filter, setFilter] = useState('all')
   const [editingId, setEditingId] = useState(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [editingPriority, setEditingPriority] = useState(DEFAULT_PRIORITY)
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
@@ -59,20 +95,28 @@ function App() {
   const completedCount = todos.filter((todo) => todo.completed).length
   const remainingCount = todos.length - completedCount
   const completionRate = todos.length === 0 ? 0 : Math.round((completedCount / todos.length) * 100)
+  const prioritySummary = PRIORITY_OPTIONS.map(([value, config]) => ({
+    value,
+    label: config.label,
+    count: todos.filter((todo) => todo.priority === value && !todo.completed).length,
+  }))
 
   const handleSubmit = (event) => {
     event.preventDefault()
     const title = draft.trim()
     if (!title) return
 
-    setTodos((current) => [createTodo(title), ...current])
+    setTodos((current) => sortTodos([createTodo(title, draftPriority), ...current]))
     setDraft('')
+    setDraftPriority(DEFAULT_PRIORITY)
   }
 
   const toggleTodo = (id) => {
     setTodos((current) =>
-      current.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+      sortTodos(
+        current.map((todo) =>
+          todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+        ),
       ),
     )
   }
@@ -83,17 +127,20 @@ function App() {
     if (editingId === id) {
       setEditingId(null)
       setEditingTitle('')
+      setEditingPriority(DEFAULT_PRIORITY)
     }
   }
 
   const startEditing = (todo) => {
     setEditingId(todo.id)
     setEditingTitle(todo.title)
+    setEditingPriority(todo.priority)
   }
 
   const resetEditing = () => {
     setEditingId(null)
     setEditingTitle('')
+    setEditingPriority(DEFAULT_PRIORITY)
   }
 
   const saveEdit = (id) => {
@@ -101,7 +148,9 @@ function App() {
     if (!title) return
 
     setTodos((current) =>
-      current.map((todo) => (todo.id === id ? { ...todo, title } : todo)),
+      sortTodos(
+        current.map((todo) => (todo.id === id ? { ...todo, title, priority: editingPriority } : todo)),
+      ),
     )
     resetEditing()
   }
@@ -139,7 +188,7 @@ function App() {
                 <label className="section-label" htmlFor="todo-input">
                   添加新任务
                 </label>
-                <p className="section-help">输入一条简洁的待办事项，按回车或点击按钮即可加入列表。</p>
+                <p className="section-help">输入一条简洁的待办事项，设置优先级后即可加入列表。</p>
               </div>
 
               <div className="composer-row">
@@ -150,6 +199,21 @@ function App() {
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                 />
+                <label className="priority-field" htmlFor="todo-priority">
+                  <span>优先级</span>
+                  <select
+                    id="todo-priority"
+                    className="select-input"
+                    value={draftPriority}
+                    onChange={(event) => setDraftPriority(event.target.value)}
+                  >
+                    {PRIORITY_OPTIONS.map(([value, config]) => (
+                      <option key={value} value={value}>
+                        {config.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <button type="submit" className="primary-button">
                   添加任务
                 </button>
@@ -173,13 +237,14 @@ function App() {
                 })}
               </div>
 
-              <span className="toolbar-note">完成率 {completionRate}%</span>
+              <span className="toolbar-note">默认按优先级排序，完成率 {completionRate}%</span>
             </div>
 
             <section className="todo-list" aria-live="polite">
               {visibleTodos.length > 0 ? (
                 visibleTodos.map((todo) => {
                   const isEditing = editingId === todo.id
+                  const priorityConfig = PRIORITIES[todo.priority]
 
                   return (
                     <article key={todo.id} className={`todo-item ${todo.completed ? 'is-complete' : ''}`}>
@@ -205,6 +270,21 @@ function App() {
                               }}
                               autoFocus
                             />
+                            <label className="priority-field priority-field-inline" htmlFor={`priority-${todo.id}`}>
+                              <span>优先级</span>
+                              <select
+                                id={`priority-${todo.id}`}
+                                className="select-input"
+                                value={editingPriority}
+                                onChange={(event) => setEditingPriority(event.target.value)}
+                              >
+                                {PRIORITY_OPTIONS.map(([value, config]) => (
+                                  <option key={value} value={value}>
+                                    {config.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
                             <div className="action-row">
                               <button type="button" onClick={() => saveEdit(todo.id)} className="primary-button small">
                                 保存
@@ -218,6 +298,7 @@ function App() {
                           <>
                             <div className="todo-heading">
                               <h2>{todo.title}</h2>
+                              <span className={`priority-badge priority-${todo.priority}`}>{priorityConfig.label}</span>
                               <span className="status-badge">{todo.completed ? '已完成' : '进行中'}</span>
                             </div>
                             <p className="todo-meta">
@@ -269,6 +350,21 @@ function App() {
                     已完成 {completedCount} / {todos.length} 项
                   </span>
                 </div>
+              </div>
+            </section>
+
+            <section>
+              <div className="priority-summary-header">
+                <p className="section-label">优先级概览</p>
+                <span className="section-help">仅统计未完成任务</span>
+              </div>
+              <div className="priority-summary-grid">
+                {prioritySummary.map((item) => (
+                  <div key={item.value} className={`priority-summary-card priority-${item.value}`}>
+                    <span>{item.label}</span>
+                    <strong>{item.count}</strong>
+                  </div>
+                ))}
               </div>
             </section>
 
