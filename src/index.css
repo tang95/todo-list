@@ -33,6 +33,10 @@ select {
   font: inherit;
 }
 
+select {
+  appearance: none;
+}
+
 button {
   cursor: pointer;
 }
@@ -215,7 +219,8 @@ button:disabled {
   color: #6f8798;
 }
 
-.text-input {
+.text-input,
+.select-input {
   width: 100%;
   min-width: 0;
   padding: 14px 16px;
@@ -231,9 +236,36 @@ button:disabled {
   color: #96aab9;
 }
 
-.text-input:focus {
+.text-input:focus,
+.select-input:focus {
   border-color: #69bcd4;
   box-shadow: 0 0 0 4px rgba(134, 213, 234, 0.18);
+}
+
+.priority-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+  color: #527086;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.priority-field-inline {
+  max-width: 220px;
+}
+
+.select-input {
+  padding-right: 42px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #6f8798 50%),
+    linear-gradient(135deg, #6f8798 50%, transparent 50%);
+  background-position:
+    calc(100% - 22px) calc(50% - 2px),
+    calc(100% - 16px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
 }
 
 .primary-button,
@@ -397,15 +429,34 @@ button:disabled {
   text-decoration: line-through;
 }
 
+.priority-badge,
 .status-badge {
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(232, 244, 248, 1);
-  color: #5f7f93;
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+.status-badge {
+  background: rgba(232, 244, 248, 1);
+  color: #5f7f93;
+}
+
+.priority-high {
+  background: rgba(255, 235, 238, 1);
+  color: #b94a63;
+}
+
+.priority-medium {
+  background: rgba(255, 245, 225, 1);
+  color: #b47a1b;
+}
+
+.priority-low {
+  background: rgba(233, 245, 239, 1);
+  color: #2d8b5f;
 }
 
 .todo-meta {
@@ -503,6 +554,37 @@ button:disabled {
   margin-top: 10px;
 }
 
+.priority-summary-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.priority-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.priority-summary-card {
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(225, 236, 241, 0.95);
+}
+
+.priority-summary-card span {
+  display: block;
+  font-size: 0.8rem;
+}
+
+.priority-summary-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.7rem;
+}
+
 .summary-card {
   display: flex;
   flex-direction: column;
@@ -536,10 +618,15 @@ button:disabled {
   .composer-row,
   .toolbar,
   .todo-item,
-  .progress-summary {
+  .progress-summary,
+  .priority-summary-header {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .priority-summary-grid {
+    grid-template-columns: 1fr;
   }
 
   .todo-item {

@@ -9,6 +9,7 @@ A personal Todo List MVP built with React, Vite, and Tailwind CSS.
 - Mark todos as complete or incomplete
 - Delete todos
 - Filter by all / active / completed
+- Assign high / medium / low priority to each todo
 - Persist data to `localStorage`
 
 ## Run locally
