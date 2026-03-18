@@ -7,6 +7,12 @@ const FILTERS = {
   completed: '已完成',
 }
 
+const QUICK_TIPS = [
+  '用一句清晰的话描述任务，避免含糊目标。',
+  '优先处理 1-3 个最重要的待办，保持专注。',
+  '完成后及时清理列表，让页面始终轻盈。',
+]
+
 const createTodo = (title) => ({
   id: crypto.randomUUID(),
   title: title.trim(),
@@ -52,6 +58,7 @@ function App() {
 
   const completedCount = todos.filter((todo) => todo.completed).length
   const remainingCount = todos.length - completedCount
+  const completionRate = todos.length === 0 ? 0 : Math.round((completedCount / todos.length) * 100)
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -84,6 +91,11 @@ function App() {
     setEditingTitle(todo.title)
   }
 
+  const resetEditing = () => {
+    setEditingId(null)
+    setEditingTitle('')
+  }
+
   const saveEdit = (id) => {
     const title = editingTitle.trim()
     if (!title) return
@@ -91,8 +103,7 @@ function App() {
     setTodos((current) =>
       current.map((todo) => (todo.id === id ? { ...todo, title } : todo)),
     )
-    setEditingId(null)
-    setEditingTitle('')
+    resetEditing()
   }
 
   const clearCompleted = () => {
@@ -100,56 +111,53 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-4xl flex-col gap-8">
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40 backdrop-blur">
-          <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/20 via-slate-900 to-violet-500/20 px-6 py-8 sm:px-8">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="space-y-3">
-                <span className="inline-flex w-fit rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-cyan-200">
-                  Personal Todo App
-                </span>
-                <div>
-                  <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                    专注完成每一件重要的小事
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-sm text-slate-300 sm:text-base">
-                    使用 React + Tailwind 构建的个人版 Todo List MVP，支持新增、编辑、完成、删除、筛选和本地持久化。
-                  </p>
-                </div>
-              </div>
+    <main className="app-shell">
+      <div className="decor decor-left" aria-hidden="true" />
+      <div className="decor decor-right" aria-hidden="true" />
 
-              <div className="grid grid-cols-2 gap-3 sm:w-auto">
-                <StatCard label="总任务" value={todos.length} />
-                <StatCard label="待完成" value={remainingCount} accent="violet" />
-              </div>
-            </div>
+      <section className="app-card">
+        <header className="hero">
+          <div className="hero-copy">
+            <span className="eyebrow">Simple Todo List</span>
+            <h1>保持简单清爽，把待办整理得更舒服。</h1>
+            <p>
+              用更柔和的层次、留白和信息分组来管理任务；核心操作依旧直接，页面也更轻盈。
+            </p>
           </div>
 
-          <div className="grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-[1.4fr_0.8fr]">
-            <div className="space-y-6">
-              <form className="rounded-2xl border border-white/10 bg-slate-900/70 p-4" onSubmit={handleSubmit}>
-                <label className="mb-3 block text-sm font-medium text-slate-200" htmlFor="todo-input">
+          <div className="stats-grid" aria-label="任务统计">
+            <StatCard label="全部任务" value={todos.length} helper="当前记录" />
+            <StatCard label="待完成" value={remainingCount} helper="优先处理" accent="emerald" />
+            <StatCard label="已完成" value={completedCount} helper="今天进度" accent="amber" />
+          </div>
+        </header>
+
+        <div className="content-grid">
+          <section className="panel panel-primary">
+            <form className="composer" onSubmit={handleSubmit}>
+              <div>
+                <label className="section-label" htmlFor="todo-input">
                   添加新任务
                 </label>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    id="todo-input"
-                    className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-slate-100 outline-none ring-0 transition placeholder:text-slate-500 focus:border-cyan-400/60"
-                    placeholder="例如：完成 React + Tailwind Todo App MVP"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
-                  >
-                    添加任务
-                  </button>
-                </div>
-              </form>
+                <p className="section-help">输入一条简洁的待办事项，按回车或点击按钮即可加入列表。</p>
+              </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="composer-row">
+                <input
+                  id="todo-input"
+                  className="text-input"
+                  placeholder="例如：整理本周工作计划"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                />
+                <button type="submit" className="primary-button">
+                  添加任务
+                </button>
+              </div>
+            </form>
+
+            <div className="toolbar">
+              <div className="filter-group" role="tablist" aria-label="任务筛选">
                 {Object.entries(FILTERS).map(([value, label]) => {
                   const active = filter === value
                   return (
@@ -157,11 +165,7 @@ function App() {
                       key={value}
                       type="button"
                       onClick={() => setFilter(value)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                        active
-                          ? 'bg-white text-slate-950'
-                          : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
-                      }`}
+                      className={`filter-chip ${active ? 'active' : ''}`}
                     >
                       {label}
                     </button>
@@ -169,173 +173,141 @@ function App() {
                 })}
               </div>
 
-              <section className="space-y-3">
-                {visibleTodos.length > 0 ? (
-                  visibleTodos.map((todo) => {
-                    const isEditing = editingId === todo.id
-
-                    return (
-                      <article
-                        key={todo.id}
-                        className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 shadow-lg shadow-slate-950/20"
-                      >
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="flex min-w-0 flex-1 gap-3">
-                            <button
-                              type="button"
-                              onClick={() => toggleTodo(todo.id)}
-                              className={`mt-1 h-5 w-5 shrink-0 rounded-full border transition ${
-                                todo.completed
-                                  ? 'border-emerald-300 bg-emerald-300'
-                                  : 'border-slate-500 bg-transparent hover:border-cyan-300'
-                              }`}
-                              aria-label={todo.completed ? '标记为未完成' : '标记为已完成'}
-                            />
-
-                            <div className="min-w-0 flex-1">
-                              {isEditing ? (
-                                <div className="space-y-3">
-                                  <input
-                                    className="w-full rounded-xl border border-cyan-400/30 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-300"
-                                    value={editingTitle}
-                                    onChange={(event) => setEditingTitle(event.target.value)}
-                                    onKeyDown={(event) => {
-                                      if (event.key === 'Enter') saveEdit(todo.id)
-                                      if (event.key === 'Escape') {
-                                        setEditingId(null)
-                                        setEditingTitle('')
-                                      }
-                                    }}
-                                    autoFocus
-                                  />
-                                  <div className="flex flex-wrap gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => saveEdit(todo.id)}
-                                      className="rounded-full bg-cyan-400 px-3 py-1.5 text-xs font-semibold text-slate-950"
-                                    >
-                                      保存
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEditingId(null)
-                                        setEditingTitle('')
-                                      }}
-                                      className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200"
-                                    >
-                                      取消
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <h2
-                                    className={`text-base font-medium sm:text-lg ${
-                                      todo.completed ? 'text-slate-500 line-through' : 'text-slate-100'
-                                    }`}
-                                  >
-                                    {todo.title}
-                                  </h2>
-                                  <p className="mt-2 text-xs text-slate-500">
-                                    创建于 {new Date(todo.createdAt).toLocaleString('zh-CN', {
-                                      dateStyle: 'medium',
-                                      timeStyle: 'short',
-                                    })}
-                                  </p>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          {!isEditing && (
-                            <div className="flex gap-2 sm:justify-end">
-                              <button
-                                type="button"
-                                onClick={() => startEditing(todo)}
-                                className="rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-                              >
-                                编辑
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => deleteTodo(todo.id)}
-                                className="rounded-full border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/20"
-                              >
-                                删除
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </article>
-                    )
-                  })
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-white/10 bg-slate-900/40 px-6 py-12 text-center">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-2xl">
-                      ✨
-                    </div>
-                    <h2 className="text-lg font-semibold text-slate-100">当前列表为空</h2>
-                    <p className="mt-2 text-sm text-slate-400">
-                      先添加一个任务，或者切换筛选查看其他状态的待办事项。
-                    </p>
-                  </div>
-                )}
-              </section>
+              <span className="toolbar-note">完成率 {completionRate}%</span>
             </div>
 
-            <aside className="space-y-4 rounded-2xl border border-white/10 bg-slate-900/70 p-5">
-              <div>
-                <p className="text-sm font-medium text-slate-200">进度总览</p>
-                <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-400 transition-all"
-                    style={{
-                      width: todos.length === 0 ? '0%' : `${(completedCount / todos.length) * 100}%`,
-                    }}
-                  />
+            <section className="todo-list" aria-live="polite">
+              {visibleTodos.length > 0 ? (
+                visibleTodos.map((todo) => {
+                  const isEditing = editingId === todo.id
+
+                  return (
+                    <article key={todo.id} className={`todo-item ${todo.completed ? 'is-complete' : ''}`}>
+                      <button
+                        type="button"
+                        onClick={() => toggleTodo(todo.id)}
+                        className={`check-button ${todo.completed ? 'checked' : ''}`}
+                        aria-label={todo.completed ? '标记为未完成' : '标记为已完成'}
+                      >
+                        <span className="check-dot" />
+                      </button>
+
+                      <div className="todo-body">
+                        {isEditing ? (
+                          <div className="editor-block">
+                            <input
+                              className="text-input"
+                              value={editingTitle}
+                              onChange={(event) => setEditingTitle(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') saveEdit(todo.id)
+                                if (event.key === 'Escape') resetEditing()
+                              }}
+                              autoFocus
+                            />
+                            <div className="action-row">
+                              <button type="button" onClick={() => saveEdit(todo.id)} className="primary-button small">
+                                保存
+                              </button>
+                              <button type="button" onClick={resetEditing} className="ghost-button small">
+                                取消
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="todo-heading">
+                              <h2>{todo.title}</h2>
+                              <span className="status-badge">{todo.completed ? '已完成' : '进行中'}</span>
+                            </div>
+                            <p className="todo-meta">
+                              创建于{' '}
+                              {new Date(todo.createdAt).toLocaleString('zh-CN', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              })}
+                            </p>
+                          </>
+                        )}
+                      </div>
+
+                      {!isEditing && (
+                        <div className="action-row action-row-end">
+                          <button type="button" onClick={() => startEditing(todo)} className="ghost-button small">
+                            编辑
+                          </button>
+                          <button type="button" onClick={() => deleteTodo(todo.id)} className="danger-button small">
+                            删除
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  )
+                })
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon" aria-hidden="true">
+                    ☁️
+                  </div>
+                  <h2>当前列表很清爽</h2>
+                  <p>添加一条待办，或者切换筛选查看其他状态的任务。</p>
                 </div>
-                <p className="mt-2 text-xs text-slate-400">
-                  已完成 {completedCount} / {todos.length || 0} 项任务
-                </p>
-              </div>
+              )}
+            </section>
+          </section>
 
-              <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                <p className="text-sm font-medium text-slate-200">MVP 功能</p>
-                <ul className="mt-3 space-y-2 text-sm text-slate-400">
-                  <li>• 新增任务并即时保存到 localStorage</li>
-                  <li>• 编辑任务标题并支持 Enter / Esc 快捷键</li>
-                  <li>• 标记完成、删除任务、清理已完成项</li>
-                  <li>• 按全部 / 未完成 / 已完成筛选</li>
-                </ul>
+          <aside className="panel panel-secondary">
+            <section>
+              <p className="section-label">今日进度</p>
+              <div className="progress-card">
+                <div className="progress-track">
+                  <div className="progress-value" style={{ width: `${completionRate}%` }} />
+                </div>
+                <div className="progress-summary">
+                  <strong>{completionRate}%</strong>
+                  <span>
+                    已完成 {completedCount} / {todos.length} 项
+                  </span>
+                </div>
               </div>
+            </section>
 
+            <section>
+              <p className="section-label">使用建议</p>
+              <ul className="tips-list">
+                {QUICK_TIPS.map((tip) => (
+                  <li key={tip}>{tip}</li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="summary-card">
+              <div>
+                <p className="section-label">快速整理</p>
+                <p className="section-help">当已完成任务较多时，一键清理可以让页面继续保持整洁。</p>
+              </div>
               <button
                 type="button"
                 onClick={clearCompleted}
                 disabled={completedCount === 0}
-                className="inline-flex w-full items-center justify-center rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-100 transition enabled:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                className="ghost-button full-width"
               >
                 清理已完成任务
               </button>
-            </aside>
-          </div>
-        </section>
-      </div>
+            </section>
+          </aside>
+        </div>
+      </section>
     </main>
   )
 }
 
-function StatCard({ label, value, accent = 'cyan' }) {
-  const accentStyles = {
-    cyan: 'from-cyan-400/20 to-cyan-500/5 text-cyan-100',
-    violet: 'from-violet-400/20 to-violet-500/5 text-violet-100',
-  }
-
+function StatCard({ label, value, helper, accent = 'blue' }) {
   return (
-    <div className={`rounded-2xl border border-white/10 bg-gradient-to-br p-4 ${accentStyles[accent]}`}>
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+    <div className={`stat-card accent-${accent}`}>
+      <p>{label}</p>
+      <strong>{value}</strong>
+      <span>{helper}</span>
     </div>
   )
 }
